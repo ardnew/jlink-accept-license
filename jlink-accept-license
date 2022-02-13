@@ -2,7 +2,7 @@
 
 title='J-Link.*Terms of use'
 
-if xdo=$( type -p xdotool ); then
+if xdo=$( type -P xdotool ); then
 	unset -v SCREEN WINDOW X Y WIDTH HEIGHT
 	eval $( $xdo search --name "$title" getwindowgeometry --shell )
 	if [[ -n $SCREEN && -n $WINDOW && -n $X && -n $Y && -n $WIDTH && -n $HEIGHT ]]; then
