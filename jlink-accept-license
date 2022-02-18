@@ -1,9 +1,11 @@
 #!/bin/bash
 
 title='J-Link.*Terms of use'
+display=${DISPLAY:-':0'} # use ":0" if DISPLAY unset
 
 if xdo=$( type -P xdotool ); then
 	unset -v SCREEN WINDOW X Y WIDTH HEIGHT
+	export DISPLAY=$display
 	eval $( $xdo search --name "$title" getwindowgeometry --shell )
 	if [[ -n $SCREEN && -n $WINDOW && -n $X && -n $Y && -n $WIDTH && -n $HEIGHT ]]; then
 		$xdo windowactivate --sync $WINDOW
