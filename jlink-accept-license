@@ -3,19 +3,82 @@
 title='J-Link.*Terms of use'
 display=${DISPLAY:-':0'} # use ":0" if DISPLAY unset
 
+# Run without MOUSE (or MOUSE=0) to control dialog box using the keyboard only.
+# Run with MOUSE=1 to control dialog box with relative mouse clicks.
+[[ -n ${MOUSE:+?} ]] && usemouse=${MOUSE}
+
+# Only define our relative mouse offsets if we are using the mouse to control
+# the dialog box.
+if [[ -n $usemouse && $usemouse != "0" ]]; then
+
+	xleft=20 # positive X-offset of checkbox (relative to left edge of dialog)
+	ybotm=30 # negative Y-offset of checkbox (relative to bottom edge of dialog)
+
+fi
+
+# Verify we have xdotool installed and in our PATH.
 if xdo=$( type -P xdotool ); then
+
+	# Make sure we aren't using any stale environment variables from prior runs.
 	unset -v SCREEN WINDOW X Y WIDTH HEIGHT
+
+	# xdotool requires an X11 DISPLAY be defined for _all_ operations.
 	export DISPLAY=$display
+
+	# Search for windows whose title matches our regular expression. If found,
+	# the --shell flag will cause xdotool to print environment variables of the
+	# form KEY=VAL for all of the window's geometric properties. We can simply
+	# eval this output to add these variables to our current environment.
 	eval $( $xdo search --name "$title" getwindowgeometry --shell )
+
+	# Verify the window was found and all of the required geometric properties 
+	# have been added to our environment.
 	if [[ -n $SCREEN && -n $WINDOW && -n $X && -n $Y && -n $WIDTH && -n $HEIGHT ]]; then
+
+		# Bring the window to front of view stack and acquire focus.
 		$xdo windowactivate --sync $WINDOW
-		$xdo mousemove --sync 0 0
-		$xdo mousemove --sync --window $WINDOW --screen $SCREEN 20 $(( $HEIGHT - 30 ))
-		$xdo click --window $WINDOW --clearmodifiers 1
-		$xdo key --window $WINDOW --clearmodifiers Alt+a
+
+		# Check if we should use relative mouse clicks.
+		if [[ -n $usemouse && -n $xleft && -n $ybotm ]]; then
+
+			# First move the mouse off the dialog box window, forcing window managers
+			# configured with "focus follows mouse" (kwin) to unfocus the window.
+			# Without this, sometimes the window doesn't properly acquire focus below,
+			# which prevents trapping the keyboard shortcut to press Accept button.
+			$xdo mousemove --sync 0 0
+
+			# Use the mouse to click the checkbox, located by relative offsets from
+			# the bottom-left corner of the dialog box.
+			$xdo mousemove --sync --window $WINDOW --screen $SCREEN $xleft $(( $HEIGHT - $ybotm ))
+			$xdo click --window $WINDOW --clearmodifiers 1
+
+			# Use the keyboard shortcut to press Accept button.
+			$xdo key --window $WINDOW --clearmodifiers Alt+a
+
+		else # Otherwise, we use keyboard only.
+
+			# Similar to the first mousemove action above (see its comments), try to
+			# convince the window manager to give focus to our dialog box window. 
+			$xdo windowfocus --sync $WINDOW
+
+			# Use the keyboard to tab over the scroll view and onto the checkbox,
+			# and then use the keyboard shortcut to press Accept button.
+			$xdo key --window $WINDOW --clearmodifiers Tab Tab Space Alt+a
+
+		fi
+
 	else
-		printf -- 'error: window not found: %s\n' "$title"
+
+		# Failed to find a window whose title matches our regular expression.
+		printf -- 'error: window not found: regex=(%s)\n' "$title"
+		exit 2
+
 	fi
+
 else
+
+	# No xdotool executable file was found in PATH.
   printf -- 'error: required command not found: %s\n' "xdotool"
+	exit 1	
+
 fi
