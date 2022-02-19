@@ -63,7 +63,7 @@ if xdo=$( type -P xdotool ); then
 
 			# Use the keyboard to tab over the scroll view and onto the checkbox,
 			# and then use the keyboard shortcut to press Accept button.
-			$xdo key --window $WINDOW --clearmodifiers Tab Tab Space Alt+a
+			$xdo key --window $WINDOW --clearmodifiers Tab Tab space Alt+a
 
 		fi
 
